@@ -1,14 +1,13 @@
 from typing import Any
 from screen import get_with_backoff_jitter
-from normalize import normalize_record
-
+from utils import normalize_record
 
 def fetch_crossref(query: str, limit: int) -> list[dict[str, Any]]:
     url = "https://api.crossref.org/works"
     params = {
         "query": query,
         "rows": limit,
-        "select": "DOI,title,author,published-print,published-online,created,container-title,URL,abstract"
+        "select": "DOI,title,author,published-print,published-online,created,container-title,URL,abstract,is-referenced-by-count"
     }
     data = get_with_backoff_jitter(url, params=params)
     items = data.get("message", {}).get("items", [])
@@ -38,6 +37,7 @@ def fetch_crossref(query: str, limit: int) -> list[dict[str, Any]]:
             doi=item.get("DOI"),
             journal=journal[0] if journal else None,
             url=item.get("URL"),
-            extra={}
+            extra={},
+            citation_count=item.get("is-referenced-by-count")
         ))
     return results

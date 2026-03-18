@@ -1,46 +1,23 @@
 import time
-from typing import Optional, Any
-import yaml
-from pathlib import Path
 import pandas as pd
 
+
 from fetch import *
-from merge_and_dedupe import dedupe_records
+from utils import dedupe_records, generate_queries_yaml, load_queries_from_yaml
 
 
-MAX_RESULTS_PER_SOURCE = 100
+MAX_RESULTS_PER_SOURCE = 30
 REQUEST_TIMEOUT = 30
 SLEEP_SECONDS = 0.5
 
 
-def load_queries_from_yaml(path: str | Path) -> dict[str, str]:
-    path = Path(path)
-
-    with path.open("r", encoding="utf-8") as f:
-        data = yaml.safe_load(f)
-
-    if not isinstance(data, dict):
-        raise ValueError(f"Expected a mapping in {path}, got {type(data).__name__}")
-
-    queries: dict[str, str] = {}
-    for key, value in data.items():
-        if not isinstance(key, str):
-            raise ValueError(f"Query key must be a string, got {type(key).__name__}")
-        if not isinstance(value, str):
-            raise ValueError(f"Query for '{key}' must be a string, got {type(value).__name__}")
-
-        queries[key] = value.strip()
-
-    return queries
-
-
 API_REGISTRY = {
-    "pubmed": fetch_pubmed,
     "europe_pmc": fetch_europe_pmc,
     "crossref": fetch_crossref,
     "semantic_scholar": fetch_semantic_scholar,
     "openalex": fetch_openalex,
     "core": fetch_core,
+    "pubmed": fetch_pubmed,
 }
 
 
@@ -71,9 +48,21 @@ def harvest_all(queries: dict[str, str], limit_per_source: int) -> pd.DataFrame:
 
 
 if __name__ == "__main__":
+    generate_queries_yaml(
+        [
+            ["foundation model", "foundation models"],
+            ["SOTA", "state-of-the-art"],
+            ["pretraining", "pre-training", "pretrained", "pre-trained"],
+            ["time series", "timeseries", "time-series"],
+            ["fMRI", "EEG", "functional magnetic resonance imaging", "electroencephalography", "functional MRI"], 
+            ["multimodal"]
+        ],
+        exclude_terms=["image"],
+    )
+    
     queries = load_queries_from_yaml("queries.yaml")
     df = harvest_all(queries, MAX_RESULTS_PER_SOURCE)
-    # TODO: df.to_json("results/literature_results_merged.json", orient='table', index=False)
-    df.to_csv("results/literature_results_merged.csv", index=False)
-    print(f"Saved {len(df)} deduplicated records to literature_results.ext")
-    print(df[["source", "year", "title", "doi", "url"]].head(20).to_string(index=False))
+    # TODO: df.to_json("results/literature_results.json", orient='table', index=False)
+    df.to_csv("results/literature_review_results.csv", index=False)
+    print(f"Saved {len(df)} deduplicated records to literature_review_results.csv")
+    # print(df[["year", "title", "url"]].head(20).to_string(index=False))

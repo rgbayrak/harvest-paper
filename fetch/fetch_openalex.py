@@ -1,6 +1,7 @@
 from typing import Any
 from screen import get_with_backoff_jitter
-from normalize import normalize_record
+from utils import normalize_record
+
 
 def fetch_openalex(query: str, limit: int) -> list[dict[str, Any]]:
     url = "https://api.openalex.org/works"
@@ -34,6 +35,7 @@ def fetch_openalex(query: str, limit: int) -> list[dict[str, Any]]:
             doi=doi,
             journal=source.get("display_name"),
             url=item.get("id"),
-            extra={"type": item.get("type")}
+            extra={"type": item.get("type")},
+            citation_count=item.get("cited_by_count")
         ))
     return results

@@ -1,7 +1,8 @@
 from config import NCBI_API_KEY, USER_EMAIL
 from typing import Any
 from screen import get_with_backoff_jitter
-from normalize import normalize_record
+from utils import normalize_record
+
 
 def fetch_pubmed(query: str, limit: int) -> list[dict[str, Any]]:
     base = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"

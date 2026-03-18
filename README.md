@@ -18,10 +18,13 @@ A practical tool for running a literature search tool across **PubMed, Europe PM
 - [API Keys — When You Need Them](#2--api-keys--when-you-need-them)
   - [How to Get Keys](#how-to-get-keys)
 - [Store Keys Properly (.env)](#3--store-keys-properly-env)
-- [How to Form Good Queries](#4--how-to-form-good-queries)
+- [Citation Counts](#4--citation-counts)
+- [How to Form Good Queries](#5--how-to-form-good-queries)
   - [Query Design (API-Server Specific)](#-query-design-api-server-specific)
   - [Query Configuration File](#-query-configuration-file)
   - [API Query Syntax Differences](#-api-query-syntax-differences)
+- [Exclusion Terms](#6--exclusion-terms)
+- [Deduplication Strategy](#7--deduplication-strategy)
 - [Rate Limiting Best Practice](#-rate-limiting-best-practice)
 - [Pro Tips (Real-World Literature Mining Pipelines)](#-pro-tips-real-literature-mining-pipelines)
 
@@ -130,7 +133,24 @@ EMAIL = os.getenv("EMAIL")
 
 ---
 
-## 4) 🧩 How to Form Good Queries
+## 4) 📊 Citation Counts
+
+The tool automatically extracts citation counts from APIs that provide them:
+
+| API              | Citation Field           | Included? |
+| ---------------- | ------------------------ | --------- |
+| Semantic Scholar | `citationCount`          | Yes       |
+| OpenAlex         | `cited_by_count`         | Yes       |
+| Crossref         | `is-referenced-by-count` | Yes       |
+| Europe PMC       | `citedByCount`           | Yes       |
+| PubMed           | N/A                      | No        |
+| CORE             | N/A                      | No        |
+
+Results appear in the `citation_count` column of the output CSV. PubMed and CORE do not provide citation counts through their APIs, so those rows will have empty values.
+
+---
+
+## 5) 🧩 How to Form Good Queries
 
 This is **information retrieval engineering**.
 
@@ -152,22 +172,27 @@ queries.yaml
 Example structure:
 
 ```yaml
-queries:
-  pubmed: >
-    ("fMRI"[Title/Abstract] OR "functional MRI"[Title/Abstract] OR "BOLD"[Title/Abstract])
-    AND (respiration[Title/Abstract] OR breathing[Title/Abstract])
-    AND (artifact*[Title/Abstract] OR motion[Title/Abstract] OR preprocessing[Title/Abstract])
+pubmed: |
+  (
+    "fMRI"[All Fields]
+    OR "functional MRI"[All Fields]
+    OR "BOLD"[All Fields])
+    AND (respiration[All Fields] OR breathing[All Fields])
+    AND (artifact*[All Fields] OR motion[All Fields] OR preprocessing[All Fields])
+  )
 
-  europe_pmc: >
-    (TITLE_ABS:"fMRI" OR TITLE_ABS:"functional MRI" OR TITLE_ABS:"BOLD")
-    AND (TITLE_ABS:respiration OR TITLE_ABS:breathing)
-    AND (TITLE_ABS:artifact* OR TITLE_ABS:motion OR TITLE_ABS:preprocessing)
+europe_pmc: |
+  ("fMRI" OR "functional MRI" OR "BOLD")
+  AND (respiration OR breathing)
+  AND (artifact* OR motion OR preprocessing)
 
-  openalex: >
-    fMRI respiration artifact motion preprocessing
+openalex: >
+  fMRI respiration artifact motion preprocessing
 ```
 
 Each key corresponds to a **dedicated API query builder**.
+
+**Search scope:** PubMed uses `[All Fields]` to search beyond title/abstract (MeSH terms, keywords, etc.). Europe PMC searches all fields including full text for open access articles. The remaining APIs (Crossref, Semantic Scholar, OpenAlex, CORE) search broadly by default.
 
 ---
 
@@ -188,20 +213,22 @@ Supports:
 Recommended pattern:
 
 ```text
-("keyword"[Title/Abstract] OR synonym[Title/Abstract])
-AND (concept[Title/Abstract])
+("keyword"[All Fields] OR synonym[All Fields])
+AND (concept[All Fields])
+NOT "excluded term"[All Fields]
 ```
 
 Example:
 
 ```text
-("fMRI"[Title/Abstract] OR "BOLD"[Title/Abstract])
-AND (respiration[Title/Abstract])
-AND (artifact*[Title/Abstract] OR motion[Title/Abstract])
+("fMRI"[All Fields] OR "BOLD"[All Fields])
+AND (respiration[All Fields])
+AND (artifact*[All Fields] OR motion[All Fields])
+NOT "speech recognition"[All Fields]
 ```
 
 **Why:**
-Field restriction dramatically improves precision and avoids indexing noise.
+`[All Fields]` searches title, abstract, MeSH terms, keywords, and all other indexed fields for broader recall.
 
 ---
 
@@ -213,18 +240,15 @@ Supports:
 * Wildcards
 * Phrase queries
 
-Similar to PubMed but uses:
-
-```
-TITLE_ABS:
-```
+Without a field prefix, Europe PMC searches all fields including full text for open access articles.
 
 Example:
 
 ```text
-(TITLE_ABS:"fMRI" OR TITLE_ABS:"BOLD")
-AND (TITLE_ABS:respiration)
-AND (TITLE_ABS:artifact*)
+("fMRI" OR "BOLD")
+AND (respiration)
+AND (artifact*)
+NOT "speech recognition"
 ```
 
 ---
@@ -344,7 +368,29 @@ For each search run, the tool logs: query string, API server, timestamp, and res
 
 ---
 
-## 5) 🧹 Deduplication Strategy
+## 6) 🚫 Exclusion Terms
+
+`generate_queries_yaml()` supports an optional `exclude_terms` parameter to filter out irrelevant results:
+
+```python
+generate_queries_yaml(
+    [
+        ["foundation model", "foundation models"],
+        ["fMRI", "EEG", "functional MRI"],
+    ],
+    exclude_terms=["speech recognition", "natural language processing", "image"],
+)
+```
+
+This appends `NOT` clauses to each API query using the correct syntax:
+
+- **PubMed:** `NOT "term"[All Fields]` per term
+- **Europe PMC:** `NOT "term"` per term
+- **Generic APIs:** `NOT ("term1" OR "term2")` as a single clause
+
+---
+
+## 7) 🧹 Deduplication Strategy
 
 APIs overlap heavily.
 

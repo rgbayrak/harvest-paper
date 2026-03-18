@@ -1,44 +1,100 @@
 pubmed: |
   (
-    ("fMRI"[Title/Abstract]
-    OR "functional MRI"[Title/Abstract]
-    OR "functional magnetic resonance imaging"[Title/Abstract]
-    OR BOLD[Title/Abstract])
+    ("foundation model"[All Fields]
+    OR "foundation models"[All Fields])
     AND
-    (respiration[Title/Abstract]
-    OR respiratory[Title/Abstract]
-    OR breathing[Title/Abstract])
+    (SOTA[All Fields]
+    OR "state-of-the-art"[All Fields])
+    AND
+    (pretraining[All Fields]
+    OR "pre-training"[All Fields]
+    OR pretrained[All Fields]
+    OR "pre-trained"[All Fields])
+    AND
+    ("time series"[All Fields]
+    OR timeseries[All Fields]
+    OR "time-series"[All Fields])
+    AND
+    (fMRI[All Fields]
+    OR EEG[All Fields]
+    OR "functional magnetic resonance imaging"[All Fields]
+    OR electroencephalography[All Fields]
+    OR "functional MRI"[All Fields])
+    AND
+    (multimodal[All Fields])
+    NOT image[All Fields]
   )
 
 europe_pmc: |
   (
-    TITLE_ABS:"fMRI"
-    OR TITLE_ABS:"functional MRI"
-    OR TITLE_ABS:"functional magnetic resonance imaging"
-    OR TITLE_ABS:"BOLD"
+    "foundation model"
+    OR "foundation models"
   )
   AND
   (
-    TITLE_ABS:respiration
-    OR TITLE_ABS:respiratory
-    OR TITLE_ABS:breathing
+    SOTA
+    OR "state-of-the-art"
   )
+  AND
+  (
+    pretraining
+    OR "pre-training"
+    OR pretrained
+    OR "pre-trained"
+  )
+  AND
+  (
+    "time series"
+    OR timeseries
+    OR "time-series"
+  )
+  AND
+  (
+    fMRI
+    OR EEG
+    OR "functional magnetic resonance imaging"
+    OR electroencephalography
+    OR "functional MRI"
+  )
+  AND
+  (
+    multimodal
+  )
+  NOT image
 
 crossref: >
-    (fMRI OR "functional MRI" OR BOLD)
-    AND (respiration OR respiratory OR breathing)
-    AND ("quality control" OR artifact OR motion OR denoising OR preprocessing)
+  ("foundation model" OR "foundation models")
+  AND (SOTA OR "state-of-the-art")
+  AND (pretraining OR "pre-training" OR pretrained OR "pre-trained")
+  AND ("time series" OR timeseries OR "time-series")
+  AND (fMRI OR EEG OR "functional magnetic resonance imaging" OR electroencephalography OR "functional MRI")
+  AND (multimodal)
+  NOT (image)
 
 semantic_scholar: >
-    fMRI BOLD respiration respiratory breathing
-    quality control artifact motion denoising preprocessing
+  ("foundation model" OR "foundation models")
+  AND (SOTA OR "state-of-the-art")
+  AND (pretraining OR "pre-training" OR pretrained OR "pre-trained")
+  AND ("time series" OR timeseries OR "time-series")
+  AND (fMRI OR EEG OR "functional magnetic resonance imaging" OR electroencephalography OR "functional MRI")
+  AND (multimodal)
+  NOT (image)
 
 openalex: >
-    (fMRI OR "functional MRI" OR BOLD)
-    AND (respiration OR respiratory OR breathing)
-    AND ("quality control" OR artifact OR motion OR denoising OR preprocessing)
+  ("foundation model" OR "foundation models")
+  AND (SOTA OR "state-of-the-art")
+  AND (pretraining OR "pre-training" OR pretrained OR "pre-trained")
+  AND ("time series" OR timeseries OR "time-series")
+  AND (fMRI OR EEG OR "functional magnetic resonance imaging" OR electroencephalography OR "functional MRI")
+  AND (multimodal)
+  NOT (image)
 
 core: >
-    (fMRI OR "functional MRI" OR BOLD)
-    AND (respiration OR respiratory OR breathing)
-    AND ("quality control" OR artifact OR motion OR denoising OR preprocessing)
+  ("foundation model" OR "foundation models")
+  AND (SOTA OR "state-of-the-art")
+  AND (pretraining OR "pre-training" OR pretrained OR "pre-trained")
+  AND ("time series" OR timeseries OR "time-series")
+  AND (fMRI OR EEG OR "functional magnetic resonance imaging" OR electroencephalography OR "functional MRI")
+  AND (multimodal)
+  NOT (image)
+

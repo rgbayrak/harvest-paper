@@ -1,0 +1,44 @@
+pubmed: |
+  (
+    ("fMRI"[Title/Abstract]
+    OR "functional MRI"[Title/Abstract]
+    OR "functional magnetic resonance imaging"[Title/Abstract]
+    OR BOLD[Title/Abstract])
+    AND
+    (respiration[Title/Abstract]
+    OR respiratory[Title/Abstract]
+    OR breathing[Title/Abstract])
+  )
+
+europe_pmc: |
+  (
+    TITLE_ABS:"fMRI"
+    OR TITLE_ABS:"functional MRI"
+    OR TITLE_ABS:"functional magnetic resonance imaging"
+    OR TITLE_ABS:"BOLD"
+  )
+  AND
+  (
+    TITLE_ABS:respiration
+    OR TITLE_ABS:respiratory
+    OR TITLE_ABS:breathing
+  )
+
+crossref: >
+    (fMRI OR "functional MRI" OR BOLD)
+    AND (respiration OR respiratory OR breathing)
+    AND ("quality control" OR artifact OR motion OR denoising OR preprocessing)
+
+semantic_scholar: >
+    fMRI BOLD respiration respiratory breathing
+    quality control artifact motion denoising preprocessing
+
+openalex: >
+    (fMRI OR "functional MRI" OR BOLD)
+    AND (respiration OR respiratory OR breathing)
+    AND ("quality control" OR artifact OR motion OR denoising OR preprocessing)
+
+core: >
+    (fMRI OR "functional MRI" OR BOLD)
+    AND (respiration OR respiratory OR breathing)
+    AND ("quality control" OR artifact OR motion OR denoising OR preprocessing)

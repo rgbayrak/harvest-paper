@@ -1,8 +1,7 @@
 from config import CORE_API_KEY
 from typing import Any
 from screen import get_with_backoff_jitter
-from normalize import normalize_record
-
+from utils import normalize_record
 
 def fetch_core(query: str, limit: int) -> list[dict[str, Any]]:
     if not CORE_API_KEY:
