@@ -9,7 +9,7 @@ def generate_queries_yaml(
     exclude_terms: list[str] | None = None,
     output_path: str | Path = "queries.yaml",
 ) -> None:
-    """Generate a queries.yaml with correct syntax for all 6 API servers.
+    """Generate a queries.yaml with correct syntax for all 7 API servers.
 
     Args:
         keyword_groups: List of keyword groups. Each group is a list of
@@ -66,14 +66,27 @@ def generate_queries_yaml(
         not_inner = " OR ".join(_q(t) for t in exclude_terms)
         generic_query += f"  NOT ({not_inner})\n"
 
+    # ── arXiv (uses all: prefix, ANDNOT instead of NOT) ──────────
+    arxiv_parts = []
+    for group in keyword_groups:
+        inner = " OR ".join(f"all:{_q(t)}" for t in group)
+        arxiv_parts.append(f"({inner})")
+    arxiv_query = f"  {arxiv_parts[0]}\n"
+    for part in arxiv_parts[1:]:
+        arxiv_query += f"  AND {part}\n"
+    if exclude_terms:
+        for t in exclude_terms:
+            arxiv_query += f"  ANDNOT all:{_q(t)}\n"
+
     # ── Write YAML ──────────────────────────────────────────────────
     with output_path.open("w", encoding="utf-8") as f:
         f.write(f"pubmed: |\n{pubmed_query}\n")
         f.write(f"europe_pmc: |\n{epmc_query}\n")
         for api in ("crossref", "semantic_scholar", "openalex", "core"):
             f.write(f"{api}: >\n{generic_query}\n")
+        f.write(f"arxiv: >\n{arxiv_query}\n")
 
-    print(f"Wrote queries for 6 APIs to {output_path}")
+    print(f"Wrote queries for 7 APIs to {output_path}")
 
 
 def load_queries_from_yaml(path: str | Path) -> dict[str, str]:

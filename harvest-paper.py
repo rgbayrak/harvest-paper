@@ -1,24 +1,7 @@
 import time
 import pandas as pd
-
-
 from fetch import *
 from utils import dedupe_records, generate_queries_yaml, load_queries_from_yaml
-
-
-MAX_RESULTS_PER_SOURCE = 30
-REQUEST_TIMEOUT = 30
-SLEEP_SECONDS = 0.5
-
-
-API_REGISTRY = {
-    "europe_pmc": fetch_europe_pmc,
-    "crossref": fetch_crossref,
-    "semantic_scholar": fetch_semantic_scholar,
-    "openalex": fetch_openalex,
-    "core": fetch_core,
-    "pubmed": fetch_pubmed,
-}
 
 
 def harvest_all(queries: dict[str, str], limit_per_source: int) -> pd.DataFrame:
@@ -46,18 +29,27 @@ def harvest_all(queries: dict[str, str], limit_per_source: int) -> pd.DataFrame:
 
 # TODO: compute recall diagnostics per API
 
+MAX_RESULTS_PER_SOURCE = 100
+SLEEP_SECONDS = 0.5
+
+API_REGISTRY = {
+    "europe_pmc": fetch_europe_pmc,
+    "crossref": fetch_crossref,
+    "semantic_scholar": fetch_semantic_scholar,
+    "openalex": fetch_openalex,
+    "core": fetch_core,
+    "pubmed": fetch_pubmed,
+    "arxiv": fetch_arxiv,
+}
 
 if __name__ == "__main__":
     generate_queries_yaml(
         [
-            ["foundation model", "foundation models"],
-            ["SOTA", "state-of-the-art"],
             ["pretraining", "pre-training", "pretrained", "pre-trained"],
+            ["foundation"],
             ["time series", "timeseries", "time-series"],
-            ["fMRI", "EEG", "functional magnetic resonance imaging", "electroencephalography", "functional MRI"], 
-            ["multimodal"]
         ],
-        exclude_terms=["image"],
+        exclude_terms=["survey"],
     )
     
     queries = load_queries_from_yaml("queries.yaml")

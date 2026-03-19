@@ -1,79 +1,43 @@
 # Multi-API Literature Query (MALQ) Tool
 
-A practical tool for running a literature search tool across **PubMed, Europe PMC, Crossref, Semantic Scholar, OpenAlex, and CORE**.
+A tool for running literature searches across **PubMed, Europe PMC, Crossref, Semantic Scholar, OpenAlex, CORE, and arXiv**.
 
-![Python](https://img.shields.io/badge/Python-3.14-blue) ![License](https://img.shields.io/badge/license-MIT-green) 
+![Python](https://img.shields.io/badge/Python-3.14-blue) ![License](https://img.shields.io/badge/license-MIT-green)
 ![Maintained](https://img.shields.io/badge/maintained-yes-brightgreen)
 
 ![Domain](https://img.shields.io/badge/domain-neuroimaging-blue)
 ![Status](https://img.shields.io/badge/status-research%20tool-yellow)
 ![Purpose](https://img.shields.io/badge/purpose-literature%20mining-blueviolet)
-![APIs](https://img.shields.io/badge/APIs-PubMed%20%7C%20EPMC%20%7C%20Crossref%20%7C%20OpenAlex%20%7C%20S2%20%7C%20CORE-plum)
+![APIs](https://img.shields.io/badge/APIs-PubMed%20%7C%20EPMC%20%7C%20Crossref%20%7C%20OpenAlex%20%7C%20S2%20%7C%20CORE%20%7C%20arXiv-plum)
 
 ---
 
-## 📚 Table of Contents
+## Table of Contents
 
-- [Create a Clean Python Environment](#1--create-a-clean-python-environment)
-- [API Keys — When You Need Them](#2--api-keys--when-you-need-them)
-  - [How to Get Keys](#how-to-get-keys)
-- [Store Keys Properly (.env)](#3--store-keys-properly-env)
-- [Citation Counts](#4--citation-counts)
-- [How to Form Good Queries](#5--how-to-form-good-queries)
-  - [Query Design (API-Server Specific)](#-query-design-api-server-specific)
-  - [Query Configuration File](#-query-configuration-file)
-  - [API Query Syntax Differences](#-api-query-syntax-differences)
-- [Exclusion Terms](#6--exclusion-terms)
-- [Deduplication Strategy](#7--deduplication-strategy)
-- [Rate Limiting Best Practice](#-rate-limiting-best-practice)
-- [Pro Tips (Real-World Literature Mining Pipelines)](#-pro-tips-real-literature-mining-pipelines)
+- [Setup](#1--setup)
+- [API Keys](#2--api-keys)
+- [Citation Counts](#3--citation-counts)
+- [Query Configuration](#4--query-configuration)
+  - [Query Syntax by API](#query-syntax-by-api)
+- [Exclusion Terms](#5--exclusion-terms)
+- [Deduplication](#6--deduplication)
+- [Rate Limiting](#7--rate-limiting)
 
 ---
 
-## 1) 📦 Create a Clean Python Environment
-
-Always isolate dependencies.
+## 1) Setup
 
 ```bash
-mkdir lit_search
-cd lit_search
-
 python -m venv .lit-env
-```
-
-Activate:
-
-```bash
-# mac/linux
-source .lit-env/bin/activate
-
-# windows
-.lit-env\Scripts\activate
-```
-
-Upgrade tooling:
-
-```bash
-pip install --upgrade pip setuptools wheel
-```
-
-Install common dependencies:
-
-```bash
-pip install requests pyyaml pandas tqdm python-dotenv
-```
-
-Nice optional tooling:
-
-```bash
-pip install rich typer httpx rapidfuzz
+source .lit-env/bin/activate   # mac/linux
+pip install -r requirements.txt
 ```
 
 ---
 
-## 2) 🔑 API Keys — When You Need Them
+## 2) API Keys
 
-Many scholarly APIs work without keys but rate limits will be lower.
+Many APIs work without keys but rate limits will be lower.
 
 | API              | Key Required? | Why Get One                   |
 | ---------------- | ------------- | ----------------------------- |
@@ -83,33 +47,9 @@ Many scholarly APIs work without keys but rate limits will be lower.
 | Semantic Scholar | Recommended   | Better batching + reliability |
 | OpenAlex         | No            | Email recommended             |
 | CORE             | Yes           | Required                      |
+| arXiv            | No            | Fully open                    |
 
-### How to Get Keys
-
-**CORE**
-
-* https://core.ac.uk/services/api
-* Create account → generate key
-
-**Semantic Scholar**
-
-* https://www.semanticscholar.org/product/api
-
-**PubMed**
-
-* https://www.ncbi.nlm.nih.gov/account/settings/
-
----
-
-## 3) 🔐 Store Keys Properly (.env)
-
-Never hardcode secrets.
-
-Create:
-
-```
-.env
-```
+Store keys in a `.env` file (see `config.py` for which variables are loaded):
 
 ```env
 CORE_API_KEY=xxxx
@@ -118,24 +58,16 @@ NCBI_API_KEY=xxxx
 EMAIL=your_email@lab.edu
 ```
 
-Load:
-
-```python
-from dotenv import load_dotenv
-import os
-
-load_dotenv()
-
-CORE_KEY = os.getenv("CORE_API_KEY")
-S2_KEY = os.getenv("S2_API_KEY")
-EMAIL = os.getenv("EMAIL")
-```
+Key registration links:
+- **CORE:** https://core.ac.uk/services/api
+- **Semantic Scholar:** https://www.semanticscholar.org/product/api
+- **PubMed:** https://www.ncbi.nlm.nih.gov/account/settings/
 
 ---
 
-## 4) 📊 Citation Counts
+## 3) Citation Counts
 
-The tool automatically extracts citation counts from APIs that provide them:
+The tool extracts citation counts from APIs that provide them:
 
 | API              | Citation Field           | Included? |
 | ---------------- | ------------------------ | --------- |
@@ -145,291 +77,138 @@ The tool automatically extracts citation counts from APIs that provide them:
 | Europe PMC       | `citedByCount`           | Yes       |
 | PubMed           | N/A                      | No        |
 | CORE             | N/A                      | No        |
+| arXiv            | N/A                      | No        |
 
-Results appear in the `citation_count` column of the output CSV. PubMed and CORE do not provide citation counts through their APIs, so those rows will have empty values.
-
----
-
-## 5) 🧩 How to Form Good Queries
-
-This is **information retrieval engineering**.
-
-### 🔎 Query Design (API-Server Specific)
-
-This tool queries multiple scholarly **API servers**, each of which supports a **different query syntax and search capability**.
-Queries are therefore defined **per API** in `queries.yaml`.
+Results appear in the `citation_count` column of the output CSV.
 
 ---
 
-#### 📁 Query Configuration File
+## 4) Query Configuration
 
-All search strings live in:
-
-```text
-queries.yaml
-```
-
-Example structure:
-
-```yaml
-pubmed: |
-  (
-    "fMRI"[All Fields]
-    OR "functional MRI"[All Fields]
-    OR "BOLD"[All Fields])
-    AND (respiration[All Fields] OR breathing[All Fields])
-    AND (artifact*[All Fields] OR motion[All Fields] OR preprocessing[All Fields])
-  )
-
-europe_pmc: |
-  ("fMRI" OR "functional MRI" OR "BOLD")
-  AND (respiration OR breathing)
-  AND (artifact* OR motion OR preprocessing)
-
-openalex: >
-  fMRI respiration artifact motion preprocessing
-```
-
-Each key corresponds to a **dedicated API query builder**.
-
-**Search scope:** PubMed uses `[All Fields]` to search beyond title/abstract (MeSH terms, keywords, etc.). Europe PMC searches all fields including full text for open access articles. The remaining APIs (Crossref, Semantic Scholar, OpenAlex, CORE) search broadly by default.
-
----
-
-#### 🔎 API Query Syntax Differences
-
-<details>
-<summary><strong> 👈🏼 Click to See Detailed Syntax Differences</strong></summary>
-
-#### 🧬 PubMed (NCBI E-utilities)
-
-Supports:
-
-* Full Boolean logic
-* Field restriction
-* Wildcards (limited)
-* Phrase queries
-
-Recommended pattern:
-
-```text
-("keyword"[All Fields] OR synonym[All Fields])
-AND (concept[All Fields])
-NOT "excluded term"[All Fields]
-```
-
-Example:
-
-```text
-("fMRI"[All Fields] OR "BOLD"[All Fields])
-AND (respiration[All Fields])
-AND (artifact*[All Fields] OR motion[All Fields])
-NOT "speech recognition"[All Fields]
-```
-
-**Why:**
-`[All Fields]` searches title, abstract, MeSH terms, keywords, and all other indexed fields for broader recall.
-
----
-
-#### 🇪🇺 Europe PMC
-
-Supports:
-
-* Boolean logic
-* Wildcards
-* Phrase queries
-
-Without a field prefix, Europe PMC searches all fields including full text for open access articles.
-
-Example:
-
-```text
-("fMRI" OR "BOLD")
-AND (respiration)
-AND (artifact*)
-NOT "speech recognition"
-```
-
----
-
-#### 📚 Crossref
-
-Does **not support structured Boolean queries reliably**.
-
-Best practice:
-
-* Use **keyword bags**
-* Provide multiple concept tokens
-* Let Crossref relevance ranking handle scoring
-
-Example:
-
-```text
-fMRI respiration artifact motion denoising preprocessing
-```
-
----
-
-#### 🧠 Semantic Scholar
-
-Supports:
-
-* Keyword queries
-* Limited Boolean support
-* Relevance ranking strongly influences results
-
-Recommended:
-
-```text
-fMRI BOLD respiration artifact motion denoising preprocessing
-```
-
----
-
-#### 🌍 OpenAlex
-
-Uses a **semantic + keyword ranking system**.
-
-Best practice:
-
-* Short concept queries
-* Avoid heavy Boolean nesting
-* Prefer multiple independent query runs
-
-Example:
-
-```text
-fMRI respiration physiological noise artifact
-```
-
----
-
-#### 📄 CORE
-
-Supports Boolean queries but parsing can be inconsistent.
-
-Recommended pattern:
-
-```text
-(fMRI OR "functional MRI" OR BOLD)
-AND (respiration OR breathing)
-AND (artifact OR motion OR preprocessing)
-```
-
----
-
-### 🧠 Recommended Query Strategy
-
-Because APIs differ, the tool uses a **hybrid retrieval strategy**:
-
-#### Tier 1 — High Recall APIs
-
-* OpenAlex
-* Semantic Scholar
-* Crossref
-
-Use **broad keyword queries**.
-
-#### Tier 2 — High Precision APIs
-
-* PubMed
-* Europe PMC
-* CORE
-
-Use **structured Boolean + field restriction queries**.
-
-Results are later **merged and deduplicated**.
-
----
-
-### 🧩 Query Engineering Tips
-
-* Expand synonyms:
-  `respiration`, `respiratory`, `breathing`, `physiological noise`
-
-* Expand modality:
-  `fMRI`, `functional MRI`, `BOLD`
-
-* Expand method terms:
-  `artifact`, `motion`, `denoising`, `preprocessing`, `quality control`
-
-* Avoid overly long Boolean chains for ranking-based APIs.
-
-* Run **multiple query variants** rather than one massive query.
-
----
-
-### 🔬 Reproducibility
-
-For each search run, the tool logs: query string, API server, timestamp, and result count. This allows full reconstruction of the literature search.
-
-</details>
-
----
-
-## 6) 🚫 Exclusion Terms
-
-`generate_queries_yaml()` supports an optional `exclude_terms` parameter to filter out irrelevant results:
+All search strings live in `queries.yaml`, with one entry per API. You can write this file manually or generate it with `generate_queries_yaml()`:
 
 ```python
 generate_queries_yaml(
     [
         ["foundation model", "foundation models"],
         ["fMRI", "EEG", "functional MRI"],
+        ["multimodal"],
     ],
-    exclude_terms=["speech recognition", "natural language processing", "image"],
+    exclude_terms=["image", "survey"],
 )
 ```
 
-This appends `NOT` clauses to each API query using the correct syntax:
+This generates API-specific query syntax for all 7 APIs. See `queries-example.yaml` for a full example.
+
+**Search scope:**
+- **PubMed** uses `[All Fields]` — searches title, abstract, MeSH terms, keywords, and all other indexed fields.
+- **Europe PMC** searches all fields including full text for open access articles.
+- **arXiv** uses `all:` prefix — searches title, abstract, comments, and full text.
+- **Crossref, Semantic Scholar, OpenAlex, CORE** search broadly by default.
+
+### Query Syntax by API
+
+<details>
+<summary>Click to expand syntax details</summary>
+
+#### PubMed (NCBI E-utilities)
+
+Full Boolean logic, field restriction, wildcards, phrase queries.
+
+```text
+("fMRI"[All Fields] OR "BOLD"[All Fields])
+AND (respiration[All Fields])
+NOT "speech recognition"[All Fields]
+```
+
+#### Europe PMC
+
+Boolean logic, wildcards, phrase queries. No field prefix = full-text search for open access.
+
+```text
+("fMRI" OR "BOLD")
+AND (respiration)
+NOT "speech recognition"
+```
+
+#### Crossref
+
+Limited Boolean support. Best with keyword bags — let relevance ranking handle scoring.
+
+```text
+fMRI respiration artifact motion denoising preprocessing
+```
+
+#### Semantic Scholar
+
+Keyword queries with limited Boolean support.
+
+```text
+fMRI BOLD respiration artifact motion denoising preprocessing
+```
+
+#### OpenAlex
+
+Semantic + keyword ranking system. Keep queries short.
+
+```text
+fMRI respiration physiological noise artifact
+```
+
+#### CORE
+
+Supports Boolean queries but parsing can be inconsistent.
+
+```text
+(fMRI OR "functional MRI" OR BOLD)
+AND (respiration OR breathing)
+```
+
+#### arXiv
+
+Uses `all:` field prefix and `ANDNOT` instead of `NOT`.
+
+```text
+(all:"fMRI" OR all:"BOLD")
+AND (all:respiration)
+ANDNOT all:"speech recognition"
+```
+
+</details>
+
+---
+
+## 5) Exclusion Terms
+
+`generate_queries_yaml()` supports an optional `exclude_terms` parameter:
+
+```python
+generate_queries_yaml(
+    [["foundation model", "foundation models"]],
+    exclude_terms=["speech recognition", "natural language processing"],
+)
+```
+
+This appends exclusion clauses using API-specific syntax:
 
 - **PubMed:** `NOT "term"[All Fields]` per term
 - **Europe PMC:** `NOT "term"` per term
+- **arXiv:** `ANDNOT all:"term"` per term
 - **Generic APIs:** `NOT ("term1" OR "term2")` as a single clause
 
 ---
 
-## 7) 🧹 Deduplication Strategy
+## 6) Deduplication
 
-APIs overlap heavily.
+Results from all APIs are merged and deduplicated in two passes:
 
-Best identifiers:
+1. **DOI match** — exact match on normalized DOI (lowercased, stripped)
+2. **Title match** — normalized title comparison (lowercase, alphanumeric only)
 
-* DOI (gold standard)
-* Semantic Scholar CorpusID
-* Title fuzzy match
-* Year window ±1
-
-Use:
-
-```bash
-pip install rapidfuzz
-```
+Records with DOIs are deduplicated first, then DOI-less records are deduplicated by title. A final pass removes any cross-group title duplicates.
 
 ---
 
-### 🧠 Rate Limiting Best Practice
+## 7) Rate Limiting
 
-Always be polite to literature APIs. We are using ```get_with_backoff_jitter``` to handle rate limits and transient failures. This request wrapper retries failed API calls with an increasing random delay between attempts.
-
-It is important because literature APIs (e.g., PubMed, Semantic Scholar, CORE) enforce rate limits and temporary throttling. Retrying immediately can lead to repeated failures or IP blocking. 
-
-Exponential backoff:
-* reduces request bursts during failures
-* increases the chance that the next retry succeeds
-* prevents hammering external services
-* improves robustness of long harvesting jobs
-* helps comply with API usage policies
-
----
-
-### ⭐ Pro Tips (Real Literature Mining Pipelines)
-
-#### Save Raw JSON
-
-Never only save processed CSV.
-
-#### Log Query + Timestamp
-
-Reproducibility matters.
+All API requests use `get_with_backoff_jitter` which retries failed calls with exponential backoff and random jitter. This prevents IP blocking and complies with API usage policies.
